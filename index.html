@@ -2,82 +2,336 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="sKladMan — стильний одяг та взуття">
+  <meta property="og:title" content="sKladMan">
+  <meta property="og:description" content="Стильний одяг та взуття">
   <title>sKladMan</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
+<!-- ═══════════════════════════════ HEADER ═══════════════════════════════ -->
 <header>
   <div class="header-inner">
+
     <a href="#" class="logo-wrap"><span class="logo-text">sKladMan</span></a>
-    <nav class="header-nav">
+
+    <!-- Desktop nav tabs -->
+    <nav class="header-nav" id="header-nav">
       <button class="nav-btn active" id="nav-all">Всі товари</button>
       <button class="nav-btn" id="nav-sale">Розпродаж</button>
     </nav>
+
     <div class="header-right">
-      <div class="search-wrap">
-        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" class="search-input" placeholder="Пошук товарів...">
+
+      <!-- Desktop search (hidden on mobile via CSS) -->
+      <div class="search-wrap" id="search-wrap-desktop">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" class="search-input" id="search-input"
+               placeholder="Пошук товарів..." autocomplete="off" spellcheck="false">
+        <button class="search-clear" id="search-clear" aria-label="Очистити" style="display:none">✕</button>
       </div>
+
+      <!-- Mobile search icon (shown on mobile via CSS) -->
+      <button class="mobile-search-btn" id="mobile-search-btn" aria-label="Пошук"
+              onclick="document.getElementById('mobile-search-bar').style.display='flex';
+                       document.getElementById('mobile-search-input').focus();">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+      </button>
+
+      <!-- Language toggle -->
       <div class="lang-switch">
         <button class="lang-btn" id="lang-uk">УКР</button>
         <button class="lang-btn" id="lang-en">ENG</button>
       </div>
+
+      <!-- Cart button -->
       <button class="cart-btn" id="cart-toggle" aria-label="Кошик">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2">
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <path d="M16 10a4 4 0 0 1-8 0"/>
+        </svg>
         <span class="cart-count" id="cart-count" style="display:none">0</span>
       </button>
+
+    </div>
+  </div>
+
+  <!-- Mobile search bar (sticky, below header on mobile) -->
+  <div class="mobile-search-bar" id="mobile-search-bar">
+    <div class="mobile-search-inner">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2.5"
+           style="flex-shrink:0;color:var(--text-muted)">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" class="mobile-search-input" id="mobile-search-input"
+             placeholder="Пошук товарів..." autocomplete="off" spellcheck="false">
+      <button class="search-clear" id="search-clear-mobile"
+              aria-label="Очистити" style="display:none">✕</button>
     </div>
   </div>
 </header>
 
+<!-- Search suggestion bar (JS-controlled, works on desktop and mobile) -->
+<div class="search-suggestion" id="search-suggestion" style="display:none">
+  <span id="search-suggestion-text"></span>
+  <button class="suggestion-pill" id="search-suggestion-btn"
+          onclick="acceptSuggestion()">Шукати</button>
+</div>
+
+<!-- ═══════════════════════════ FILTERS BAR ══════════════════════════════ -->
 <div class="filters-bar">
   <div class="filters-inner">
+
     <button class="filter-toggle-btn" id="filter-toggle-btn" onclick="openFilters()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="12" y1="18" x2="20" y2="18"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2">
+        <line x1="4" y1="6" x2="20" y2="6"/>
+        <line x1="8" y1="12" x2="20" y2="12"/>
+        <line x1="12" y1="18" x2="20" y2="18"/>
+      </svg>
       <span id="filter-btn-label">Фільтри</span>
       <span class="filter-active-count" id="filter-active-count" style="display:none"></span>
     </button>
+
     <div class="filter-chips" id="filter-chips"></div>
+
     <div class="filter-right">
       <span class="results-count" id="results-count"></span>
-      <div class="sort-group">
-        <span class="filter-label">Сортування</span>
-        <select class="filter-select" id="filter-sort"></select>
-      </div>
+      <!-- ═══════════════════════════════════════════════════════
+     PATCH: Замінити блок .sort-group у filters-bar
+     Знайдіть у index.html:
+
+       <div class="sort-group">
+         <span class="filter-label" id="sort-label">Сортування</span>
+         <select class="filter-select" id="filter-sort"></select>
+       </div>
+
+     І замініть на це:
+═══════════════════════════════════════════════════════ -->
+<div class="sort-group" id="sort-group">
+
+  <!-- Прихований нативний select — app.js читає його як раніше -->
+  <select class="filter-select" id="filter-sort" aria-hidden="true" tabindex="-1"></select>
+
+  <!-- Кастомна кнопка-pill -->
+  <button class="sort-pill" id="sort-pill" type="button"
+          onclick="toggleSortDropdown()" aria-haspopup="listbox"
+          aria-expanded="false" aria-label="Сортування">
+    <span class="sort-pill-label">Сортування</span>
+    <span class="sort-pill-value" id="sort-pill-value">За замовчуванням</span>
+    <svg class="sort-pill-chevron" width="14" height="14" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="2.2">
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  </button>
+
+  <!-- Кастомний список -->
+  <div class="sort-dropdown" id="sort-dropdown" role="listbox"></div>
+</div>
+<script>
+(function () {
+  /* ── Дані опцій ── */
+  const SORT_OPTIONS = [
+    { value: 'default',    labelUk: 'За замовчуванням', labelEn: 'Default' },
+    { value: 'price_asc',  labelUk: 'Ціна: від низької', labelEn: 'Price: low to high' },
+    { value: 'price_desc', labelUk: 'Ціна: від високої', labelEn: 'Price: high to low' },
+    { value: 'relevance',  labelUk: 'За релевантністю',  labelEn: 'By relevance' },
+  ];
+
+  /* ── Стан ── */
+  let sortOpen = false;
+
+  /* ── Отримати поточну мову (з app.js) ── */
+  function getLang() {
+    return localStorage.getItem('lang') || 'uk';
+  }
+
+  /* ── Побудувати список опцій ── */
+  function buildSortDropdown() {
+    const drop     = document.getElementById('sort-dropdown');
+    const select   = document.getElementById('filter-sort');
+    const pillVal  = document.getElementById('sort-pill-value');
+    if (!drop || !select) return;
+
+    const curValue = select.value || 'default';
+    const l        = getLang();
+
+    drop.innerHTML = SORT_OPTIONS.map(opt => {
+      const label   = l === 'en' ? opt.labelEn : opt.labelUk;
+      const isActive = opt.value === curValue;
+      return `<div class="sort-option${isActive ? ' active' : ''}"
+                   role="option" aria-selected="${isActive}"
+                   onclick="selectSortOption('${opt.value}')">
+        ${label}
+        <span class="sort-option-check" aria-hidden="true"></span>
+      </div>`;
+    }).join('');
+
+    /* Оновити значення на пігулці */
+    const cur = SORT_OPTIONS.find(o => o.value === curValue);
+    if (cur && pillVal) pillVal.textContent = l === 'en' ? cur.labelEn : cur.labelUk;
+  }
+
+  /* ── Відкрити / закрити ── */
+  window.toggleSortDropdown = function () {
+    const group = document.getElementById('sort-group');
+    const pill  = document.getElementById('sort-pill');
+    if (!group) return;
+    sortOpen = !sortOpen;
+    group.classList.toggle('open', sortOpen);
+    if (pill) pill.setAttribute('aria-expanded', String(sortOpen));
+    if (sortOpen) buildSortDropdown();
+  };
+
+  function closeSortDropdown() {
+    sortOpen = false;
+    const group = document.getElementById('sort-group');
+    const pill  = document.getElementById('sort-pill');
+    if (group) group.classList.remove('open');
+    if (pill)  pill.setAttribute('aria-expanded', 'false');
+  }
+
+  /* ── Вибір опції ── */
+  window.selectSortOption = function (value) {
+    const select = document.getElementById('filter-sort');
+    if (!select) return;
+    select.value = value;
+    /* Тригер change — app.js підхопить і перерендерить grid */
+    select.dispatchEvent(new Event('change'));
+    /* Оновити pill-текст одразу */
+    buildSortDropdown();
+    closeSortDropdown();
+  };
+
+  /* ── Закрити при кліку поза дропдауном ── */
+  document.addEventListener('click', function (e) {
+    if (sortOpen && !e.target.closest('#sort-group')) {
+      closeSortDropdown();
+    }
+  });
+
+  /* ── Закрити при Escape ── */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && sortOpen) closeSortDropdown();
+  });
+
+  /* ── Після завантаження: побудувати нативний select + синхронізувати pill ── */
+  document.addEventListener('DOMContentLoaded', function () {
+    /* app.js наповнює #filter-sort через renderFilters(), яка вже є.
+       Щоб і pill показував правильний текст після renderFilters(),
+       патчимо MutationObserver на select. */
+    const select = document.getElementById('filter-sort');
+    if (!select) return;
+
+    /* Оновлення pill кожного разу, коли app.js змінює select.value */
+    const origDescriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+    Object.defineProperty(select, 'value', {
+      get() { return origDescriptor.get.call(this); },
+      set(v) {
+        origDescriptor.set.call(this, v);
+        buildSortDropdown();
+      }
+    });
+
+    /* Також спостерігаємо за додаванням <option> (renderFilters) */
+    new MutationObserver(() => buildSortDropdown())
+      .observe(select, { childList: true });
+
+    buildSortDropdown();
+  });
+
+  /* Якщо мова змінюється — оновити текст pill (setLang у app.js рендерить grid,
+     але не чіпає наш custom dropdown) */
+  const _origSetLang = window.setLang;
+  if (typeof _origSetLang === 'function') {
+    window.setLang = async function (l) {
+      await _origSetLang(l);
+      buildSortDropdown();
+    };
+  } else {
+    /* setLang ще не визначена — перезапишемо після DOMContentLoaded */
+    window.addEventListener('load', function () {
+      if (typeof window.setLang === 'function') {
+        const orig = window.setLang;
+        window.setLang = async function (l) {
+          await orig(l);
+          buildSortDropdown();
+        };
+      }
+    });
+  }
+})();
+</script>
     </div>
+
   </div>
 </div>
 
+<!-- ═══════════════════════════ FILTER DRAWER ════════════════════════════ -->
 <div id="filter-drawer">
   <div id="filter-overlay" onclick="closeFilters()"></div>
   <div class="filter-panel">
+
     <div class="filter-panel-header">
-      <h2 class="filter-panel-title">Усі фільтри</h2>
+      <h2 class="filter-panel-title" id="fp-title">Усі фільтри</h2>
       <button class="filter-panel-close" onclick="closeFilters()">✕</button>
     </div>
+
     <div class="filter-panel-body" id="filter-panel-body"></div>
+
     <div class="filter-panel-footer">
-      <button class="btn-clear-filters" onclick="clearFilters()">Скинути</button>
-      <button class="btn-show-results" id="btn-show-results" onclick="closeFilters()">Показати результати</button>
+      <button class="btn-clear-filters" id="btn-clear-filters"
+              onclick="clearFilters()">Скинути</button>
+      <button class="btn-show-results" id="btn-show-results"
+              onclick="closeFilters()">Показати результати</button>
     </div>
+
   </div>
 </div>
 
+<!-- ═══════════════════════════ PRODUCT GRID ═════════════════════════════ -->
 <main class="main-content">
   <div id="product-grid"></div>
 </main>
 
-<div id="modal" role="dialog" aria-modal="true">
+<!-- ═══════════════════════════ PRODUCT MODAL ════════════════════════════ -->
+<div id="modal" role="dialog" aria-modal="true" aria-label="Картка товару">
   <div id="modal-overlay"></div>
   <div class="modal-content">
+
+    <!-- Close button -->
     <button id="modal-close" aria-label="Закрити">✕</button>
+
+    <!-- Share / copy-link button -->
+    <button class="modal-share-btn" id="modal-share"
+            aria-label="Скопіювати посилання" title="Поділитись">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2">
+        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/>
+        <circle cx="18" cy="19" r="3"/>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+      </svg>
+    </button>
+
     <div class="modal-gallery"></div>
     <div class="modal-info"></div>
+
   </div>
 </div>
 
+<!-- ═══════════════════════════ CART DRAWER ══════════════════════════════ -->
 <div id="cart-drawer">
   <div id="cart-overlay"></div>
   <div class="cart-panel">
@@ -90,10 +344,12 @@
   </div>
 </div>
 
+<!-- ═══════════════════════ ORDER / CHECKOUT MODAL ═══════════════════════ -->
 <div id="order-modal">
   <div id="order-overlay" onclick="closeOrderForm()"></div>
   <div class="order-panel">
 
+    <!-- Header: step indicators -->
     <div class="order-header">
       <div class="order-steps">
         <span class="order-step active" data-step="1">1. Контакти</span>
@@ -106,180 +362,385 @@
     </div>
 
     <div class="order-body">
+
+      <!-- Mini cart summary (JS-rendered, items are clickable via renderOrderSummary) -->
       <div class="order-summary" id="order-summary"></div>
 
+      <!-- ── STEP 1: Contacts ────────────────────────────────────────── -->
       <div class="order-step-content active" id="step-1">
         <div class="order-form">
-          <p class="step-section-title">Контактна інформація</p>
+          <p class="step-section-title" id="step1-title">Контактна інформація</p>
+
           <div class="form-row">
             <label class="form-label" id="lbl-name">Ім'я та прізвище *</label>
-            <input class="form-input" type="text" id="f-name" placeholder="Іван Петренко" autocomplete="name">
+            <input class="form-input" type="text" id="f-name"
+                   placeholder="Іван Петренко" autocomplete="name">
           </div>
+
           <div class="form-row">
             <label class="form-label" id="lbl-phone">Номер телефону *</label>
-            <input class="form-input" type="tel" id="f-phone" placeholder="+380 xx xxx xx xx" autocomplete="tel">
+            <input class="form-input" type="tel" id="f-phone"
+                   placeholder="+380 xx xxx xx xx" autocomplete="tel">
           </div>
+
           <div class="form-row">
             <label class="form-label" id="lbl-instagram">Instagram</label>
-            <input class="form-input" type="text" id="f-instagram" placeholder="@username">
+            <input class="form-input" type="text" id="f-instagram"
+                   placeholder="@username" autocomplete="off">
           </div>
+
           <div class="form-row">
             <label class="form-label" id="lbl-comment">Коментар</label>
-            <textarea class="form-input form-textarea" id="f-comment" rows="2" placeholder="Будь-які побажання..."></textarea>
+            <textarea class="form-input form-textarea" id="f-comment"
+                      rows="2" placeholder="Будь-які побажання..."></textarea>
           </div>
         </div>
+
         <div class="order-step-footer">
           <div></div>
           <button class="btn-order-next pulse-btn" onclick="goToStep(2)" type="button">
             Далі
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5">
+              <path d="M5 12h14m-7-7 7 7-7 7"/>
+            </svg>
           </button>
         </div>
       </div>
 
+      <!-- ── STEP 2: Delivery ───────────────────────────────────────── -->
       <div class="order-step-content" id="step-2">
         <div class="order-form">
-          <p class="step-section-title">Спосіб доставки</p>
+          <p class="step-section-title" id="step2-delivery-title">Спосіб доставки</p>
+
           <div class="delivery-options">
             <label class="delivery-option">
-              <input type="radio" name="delivery" value="nova_poshta" checked onchange="onDeliveryChange(this.value)">
-              <div class="delivery-option-body"><span class="delivery-name">Нова Пошта — відділення</span></div>
+              <input type="radio" name="delivery" value="nova_poshta"
+                     checked onchange="onDeliveryChange(this.value)">
+              <div class="delivery-option-body">
+                <span class="delivery-name" id="del-np">Нова Пошта — відділення</span>
+              </div>
             </label>
+
             <label class="delivery-option">
-              <input type="radio" name="delivery" value="nova_poshta_poshtamat" onchange="onDeliveryChange(this.value)">
-              <div class="delivery-option-body"><span class="delivery-name">Нова Пошта — поштомат</span></div>
+              <input type="radio" name="delivery" value="nova_poshta_poshtamat"
+                     onchange="onDeliveryChange(this.value)">
+              <div class="delivery-option-body">
+                <span class="delivery-name" id="del-npm">Нова Пошта — поштомат</span>
+              </div>
             </label>
+
             <label class="delivery-option">
-              <input type="radio" name="delivery" value="nova_poshta_courier" onchange="onDeliveryChange(this.value)">
-               <div class="delivery-option-body"><span class="delivery-name">Нова Пошта — кур'єр</span></div>
+              <input type="radio" name="delivery" value="nova_poshta_courier"
+                     onchange="onDeliveryChange(this.value)">
+              <div class="delivery-option-body">
+                <span class="delivery-name" id="del-npc">Нова Пошта — кур'єр</span>
+              </div>
             </label>
+
             <label class="delivery-option">
-              <input type="radio" name="delivery" value="ukrposhta" onchange="onDeliveryChange(this.value)">
-              <div class="delivery-option-body"><span class="delivery-name">Укрпошта</span></div>
+              <input type="radio" name="delivery" value="ukrposhta"
+                     onchange="onDeliveryChange(this.value)">
+              <div class="delivery-option-body">
+                <span class="delivery-name" id="del-up">Укрпошта</span>
+              </div>
             </label>
           </div>
 
           <div class="form-section-divider"></div>
-          <p class="step-section-title" style="margin-top:0">Адреса отримання</p>
+          <p class="step-section-title" id="step2-addr-title" style="margin-top:0">
+            Адреса отримання
+          </p>
 
+          <!-- Nova Poshta / Courier group -->
           <div id="np-group" class="animated-group">
+
             <div class="form-row" id="city-row">
               <label class="form-label" id="lbl-city">Місто / Населений пункт *</label>
               <div class="np-autocomplete-wrap">
                 <input class="form-input" type="text" id="f-city"
-                  placeholder="Почніть вводити назву міста..."
-                  oninput="onCityInput(this.value)"
-                  onblur="scheduleDropdownClose('city-dropdown')"
-                  autocomplete="off">
+                       placeholder="Почніть вводити назву міста..."
+                       oninput="onCityInput(this.value)"
+                       onblur="scheduleDropdownClose('city-dropdown')"
+                       autocomplete="off">
                 <div class="np-dropdown" id="city-dropdown"></div>
               </div>
             </div>
+
+            <!-- NP branch / poshtamat (hidden when courier selected) -->
             <div class="form-row" id="np-row">
               <label class="form-label" id="lbl-np">Відділення / Поштомат *</label>
               <div class="np-autocomplete-wrap">
                 <input class="form-input" type="text" id="f-np"
-                  placeholder="Спочатку оберіть місто"
-                  oninput="onWarehouseInput(this.value)"
-                  onfocus="onWarehouseInput(this.value)"
-                  onblur="scheduleDropdownClose('np-dropdown')"
-                  autocomplete="off" disabled>
+                       placeholder="Спочатку оберіть місто"
+                       oninput="onWarehouseInput(this.value)"
+                       onfocus="onWarehouseInput(this.value)"
+                       onblur="scheduleDropdownClose('np-dropdown')"
+                       autocomplete="off" disabled>
                 <div class="np-dropdown" id="np-dropdown"></div>
               </div>
             </div>
+
+            <!-- Courier address (hidden by default) -->
             <div class="form-row" id="address-row" style="display:none">
               <label class="form-label" id="lbl-address">Адреса доставки *</label>
-              <input class="form-input" type="text" id="f-address" placeholder="вул. Хрещатик, 1, кв. 5" autocomplete="street-address">
+              <input class="form-input" type="text" id="f-address"
+                     placeholder="вул. Хрещатик, 1, кв. 5"
+                     autocomplete="street-address">
             </div>
+
           </div>
 
-          <div id="up-group" class="animated-group" style="display:none; flex-direction:column; gap:14px;">
+          <!-- Ukrposhta group (hidden by default) -->
+          <div id="up-group" class="animated-group"
+               style="display:none; flex-direction:column; gap:14px;">
             <div class="form-row">
               <label class="form-label" id="lbl-up-city">Місто *</label>
-              <input class="form-input" type="text" id="f-up-city" placeholder="м. Київ">
+              <input class="form-input" type="text" id="f-up-city"
+                     placeholder="м. Київ">
             </div>
             <div class="form-row">
               <label class="form-label" id="lbl-up-index">Поштовий індекс *</label>
-              <input class="form-input" type="text" id="f-up-index" placeholder="01001">
+              <input class="form-input" type="text" id="f-up-index"
+                     placeholder="01001" inputmode="numeric">
             </div>
             <div class="form-row">
-              <label class="form-label" id="lbl-up-address">Вулиця, будинок, квартира *</label>
-              <input class="form-input" type="text" id="f-up-address" placeholder="вул. Хрещатик, 1, кв. 5">
+              <label class="form-label" id="lbl-up-address">
+                Вулиця, будинок, квартира *
+              </label>
+              <input class="form-input" type="text" id="f-up-address"
+                     placeholder="вул. Хрещатик, 1, кв. 5">
             </div>
           </div>
 
         </div>
+
         <div class="order-step-footer">
           <button class="btn-order-back" onclick="showStep(1)" type="button">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5m7 7-7-7 7-7"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5">
+              <path d="M19 12H5m7 7-7-7 7-7"/>
+            </svg>
             Назад
           </button>
           <button class="btn-order-next pulse-btn" onclick="goToStep(3)" type="button">
             Далі
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5">
+              <path d="M5 12h14m-7-7 7 7-7 7"/>
+            </svg>
           </button>
         </div>
       </div>
 
+      <!-- ── STEP 3: Payment ────────────────────────────────────────── -->
       <div class="order-step-content" id="step-3">
         <div class="order-form">
-          <p class="step-section-title">Спосіб оплати</p>
+          <p class="step-section-title" id="step3-payment-title">Спосіб оплати</p>
+
           <div class="payment-options">
+
+            <!-- Monobank -->
             <label class="payment-option">
-              <input type="radio" name="payment" value="mono" checked onchange="renderConfirmBox()">
+              <input type="radio" name="payment" value="mono"
+                     checked onchange="renderConfirmBox()">
               <div class="payment-option-body">
-                <svg width="22" height="22" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="8" fill="#1B1B1B"/><path d="M8 28V12l12 10 12-10v16" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/></svg>
-                <span><span class="payment-name">Переказ на Банку (Monobank)</span><span class="payment-desc">Apple Pay / Google Pay / Картка</span></span>
+                <svg width="22" height="22" viewBox="0 0 40 40" fill="none">
+                  <rect width="40" height="40" rx="8" fill="#1B1B1B"/>
+                  <path d="M8 28V12l12 10 12-10v16"
+                        stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
+                </svg>
+                <span>
+                  <span class="payment-name" id="pay-mono">
+                    Переказ на Банку (Monobank)
+                  </span>
+                  <span class="payment-desc" id="pay-mono-desc">
+                    Apple Pay / Google Pay / Картка
+                  </span>
+                </span>
               </div>
             </label>
-            
+
+            <!-- PrivatBank (disabled) -->
             <label class="payment-option disabled-option">
               <input type="radio" name="payment" value="privat" disabled>
               <div class="payment-option-body">
-                <svg width="22" height="22" viewBox="0 0 40 40" fill="none" style="opacity:0.5"><rect width="40" height="40" rx="8" fill="#77BC1F"/><text x="8" y="28" font-family="Arial" font-weight="bold" font-size="16" fill="white">P</text></svg>
-                <span><span class="payment-name">ПриватБанк <span class="badge-soon">Скоро</span></span><span class="payment-desc">Онлайн оплата тимчасово недоступна</span></span>
+                <svg width="22" height="22" viewBox="0 0 40 40" fill="none"
+                     style="opacity:0.5">
+                  <rect width="40" height="40" rx="8" fill="#77BC1F"/>
+                  <text x="8" y="28" font-family="Arial"
+                        font-weight="bold" font-size="16" fill="white">P</text>
+                </svg>
+                <span>
+                  <span class="payment-name">
+                    ПриватБанк
+                    <span class="badge-soon">Скоро</span>
+                  </span>
+                  <span class="payment-desc" id="pay-privat-desc">
+                    Онлайн оплата тимчасово недоступна
+                  </span>
+                </span>
               </div>
             </label>
 
+            <!-- Cash on delivery -->
             <label class="payment-option">
-              <input type="radio" name="payment" value="cod" onchange="renderConfirmBox()">
+              <input type="radio" name="payment" value="cod"
+                     onchange="renderConfirmBox()">
               <div class="payment-option-body">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                <span><span class="payment-name">Накладений платіж</span><span class="payment-desc">Оплата при отриманні +20 ₴</span></span>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2">
+                  <rect x="1" y="4" width="22" height="16" rx="2"/>
+                  <line x1="1" y1="10" x2="23" y2="10"/>
+                </svg>
+                <span>
+                  <span class="payment-name" id="pay-cod">
+                    Накладений платіж
+                  </span>
+                  <span class="payment-desc" id="pay-cod-desc">
+                    Оплата при отриманні +20 ₴
+                  </span>
+                </span>
               </div>
             </label>
+
           </div>
 
           <div class="form-section-divider"></div>
-          <p class="step-section-title" style="margin-top:0">Підтвердження</p>
+          <p class="step-section-title" id="step3-confirm-title" style="margin-top:0">
+            Підтвердження
+          </p>
           <div class="order-confirm-box" id="order-confirm-box"></div>
         </div>
+
         <div class="order-step-footer">
           <button class="btn-order-back" onclick="showStep(2)" type="button">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5m7 7-7-7 7-7"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5">
+              <path d="M19 12H5m7 7-7-7 7-7"/>
+            </svg>
             Назад
           </button>
-          <button class="btn-order-submit pulse-btn" id="btn-order-submit" onclick="submitOrder()" type="button">
+          <button class="btn-order-submit pulse-btn" id="btn-order-submit"
+                  onclick="submitOrder()" type="button">
             <span id="btn-order-text">Підтвердити замовлення</span>
           </button>
         </div>
       </div>
 
+      <!-- ── SUCCESS screen ─────────────────────────────────────────── -->
       <div class="order-success" id="order-success" style="display:none">
         <div class="order-success-icon">✓</div>
         <h3 id="order-success-title">Замовлення прийнято!</h3>
-        <p id="order-success-msg">Ми зв'яжемось з вами найближчим часом.</p>
-        <p class="order-success-id" id="order-success-id"></p>
-        
+        <p  id="order-success-msg">Ми зв'яжемось з вами найближчим часом.</p>
+        <p  class="order-success-id" id="order-success-id"></p>
         <div id="order-success-details" style="width:100%; margin-top:10px;"></div>
-
-        <button class="btn-order-close" type="button" onclick="closeOrderForm()">Закрити</button>
+        <button class="btn-order-close" type="button"
+                onclick="closeOrderForm()">Закрити</button>
       </div>
-    </div>
-  </div>
-</div>
+
+    </div><!-- /.order-body -->
+  </div><!-- /.order-panel -->
+</div><!-- /#order-modal -->
+
+<!-- ═══════════════════════ MOBILE BOTTOM NAV ════════════════════════════ -->
+<nav class="mobile-bottom-nav" id="mobile-bottom-nav"
+     aria-label="Мобільна навігація">
+
+  <!-- All products -->
+  <button class="mbn-btn active" id="mob-nav-all">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2">
+      <rect x="3"  y="3"  width="7" height="7" rx="1"/>
+      <rect x="14" y="3"  width="7" height="7" rx="1"/>
+      <rect x="3"  y="14" width="7" height="7" rx="1"/>
+      <rect x="14" y="14" width="7" height="7" rx="1"/>
+    </svg>
+    <span id="mob-nav-all-label">Всі</span>
+  </button>
+
+  <!-- Sale -->
+  <button class="mbn-btn" id="mob-nav-sale">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2">
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+      <line x1="7" y1="7" x2="7.01" y2="7"/>
+    </svg>
+    <span id="mob-nav-sale-label">Sale</span>
+  </button>
+
+  <!-- Filters -->
+  <button class="mbn-btn" id="mob-nav-filter" onclick="openFilters()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2">
+      <line x1="4"  y1="6"  x2="20" y2="6"/>
+      <line x1="8"  y1="12" x2="20" y2="12"/>
+      <line x1="12" y1="18" x2="20" y2="18"/>
+    </svg>
+    <span id="mob-nav-filter-label">Фільтри</span>
+    <span class="mbn-badge" id="mob-filter-count"
+          style="display:none; background:var(--accent); color:#fff;"></span>
+  </button>
+
+  <!-- Cart -->
+  <button class="mbn-btn" id="mob-nav-cart" onclick="openCart()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2">
+      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <path d="M16 10a4 4 0 0 1-8 0"/>
+    </svg>
+    <span id="mob-nav-cart-label">Кошик</span>
+    <span class="mbn-badge" id="mob-cart-count"
+          style="display:none; background:var(--sale); color:#fff;"></span>
+  </button>
+
+</nav>
 
 <footer><p>© 2026 sKladMan — All rights reserved</p></footer>
 
 <script src="js/app.js"></script>
+
+<!-- ═══════════════════════════════════════════════════════
+     Small inline patch: wire up search-clear buttons and
+     sync mobile search bar open/close — no changes to app.js
+═══════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  // ── Desktop search clear ─────────────────────────────────────────────
+  const deskInput = document.getElementById('search-input');
+  const deskClear = document.getElementById('search-clear');
+  if (deskInput && deskClear) {
+    deskInput.addEventListener('input', () => {
+      deskClear.style.display = deskInput.value ? 'flex' : 'none';
+    });
+    deskClear.addEventListener('click', () => {
+      deskInput.value = '';
+      deskClear.style.display = 'none';
+      deskInput.dispatchEvent(new Event('input'));
+      deskInput.focus();
+    });
+  }
+
+  // ── Mobile search clear ──────────────────────────────────────────────
+  const mobInput = document.getElementById('mobile-search-input');
+  const mobClear = document.getElementById('search-clear-mobile');
+  if (mobInput && mobClear) {
+    mobInput.addEventListener('input', () => {
+      mobClear.style.display = mobInput.value ? 'flex' : 'none';
+    });
+    mobClear.addEventListener('click', () => {
+      mobInput.value = '';
+      mobClear.style.display = 'none';
+      mobInput.dispatchEvent(new Event('input'));
+      mobInput.focus();
+    });
+  }
+
+  // ── Mobile nav: wire All / Sale buttons using app.js listeners ───────
+  // app.js attaches listeners by ID on DOMContentLoaded, so nothing extra
+  // needed here — IDs mob-nav-all and mob-nav-sale match.
+})();
+</script>
 </body>
 </html>
