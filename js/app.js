@@ -1,8 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════
-//  sKladMan — app.js  v6.0
-//  Multi-select filters · Fuzzy Search + UA transliteration
-//  URL hash · Share · Mobile nav · Cart state
-//  Auto-translate EN · Size chart table · Click-from-order
+//  sKladMan — app.js  v7.0
+//  Fixes: #1 order history, #2 paymentStatus, #3 card links,
+//         #4 phone validation, #5 postal index, + account drawer
 // ═══════════════════════════════════════════════════════════════════
 
 const API_URL      = 'https://script.google.com/macros/s/AKfycbxS1qhCZvrKB-t4tnidIZMbqu-6VHYtwCKU0SeAM80vkatQzlkurX3xukS1B6kjdsHE/exec';
@@ -157,8 +156,8 @@ let modalPhotoCache  = {};
 let selectedSize     = null;
 let cart             = JSON.parse(localStorage.getItem('cart') || '[]');
 let currentStep      = 1;
-let orderFormHidden  = false;       // true while product modal is open from order form
-const translationCache = {};        // text → translated text
+let orderFormHidden  = false;
+const translationCache = {};
 
 // ─── SCROLL ANIMATIONS ────────────────────────────────────────────────────────
 let cardObserver = null;
@@ -226,6 +225,11 @@ const T = {
     size_col_foot:'Довжина стопи',
     size_col_measure:'Виміри',
     translating:'Перекладаємо...',
+    account_title:'Мої замовлення',
+    account_empty:'Замовлень ще немає',
+    order_new:'Нове',
+    order_paid:'Оплачено',
+    order_cod:'При отриманні',
   },
   en: {
     nav_all:'All items', nav_sale:'Sale',
@@ -256,6 +260,11 @@ const T = {
     size_col_foot:'Foot length',
     size_col_measure:'Measurements',
     translating:'Translating...',
+    account_title:'My Orders',
+    account_empty:'No orders yet',
+    order_new:'New',
+    order_paid:'Paid',
+    order_cod:'Pay on delivery',
   }
 };
 
@@ -285,9 +294,14 @@ const LOCAL_PRODUCTS = [
   { id:"001-001-002", brand:"Nike", name:"Nike m2k tekno white", category:"Shoes", price:2300, oldPrice:2500, onSale:true, sizes:{"S/39":"1","M/40":"2","L/41":"6","XL/42":"3","XXL/43":"1"}, desc:"Класика dad shoes у бездоганному білому кольорі.", material:"100% натуральна шкіра.", care:"Регулярно протирати вологою серветкою.", measurements:"39: 24.5–25.0см; 40: 25.5см; 41: 26.0см; 42: 26.5см; 43: 27.5см.", totalStock:13 },
 ];
 
-// ─── AUTO-TRANSLATION (MyMemory free API, no key needed) ──────────────────────
+// ─── PHONE VALIDATION — FIX #6 ────────────────────────────────────────────────
+// Accepts: +380XXXXXXXXX  |  380XXXXXXXXX  |  0XXXXXXXXX
+function isValidPhone(phone) {
+  const clean = phone.replace(/[\s\-\(\)\.]/g, '');
+  return /^(\+380\d{9}|380\d{9}|0\d{9})$/.test(clean);
+}
 
-// Simple dictionary for common measurement terms (avoids API calls for these)
+// ─── AUTO-TRANSLATION ─────────────────────────────────────────────────────────
 const MEASURE_DICT_UK_EN = {
   'ширина':'width','довжина':'length','висота':'height',
   'обхват грудей':'chest','обхват талії':'waist','обхват стегон':'hip',
@@ -308,7 +322,6 @@ async function translateUkToEn(text) {
   if (lang !== 'en') return text;
   const cacheKey = text.trim();
   if (translationCache[cacheKey]) return translationCache[cacheKey];
-
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 7000);
@@ -325,12 +338,9 @@ async function translateUkToEn(text) {
       return translated;
     }
     return text;
-  } catch {
-    return text;
-  }
+  } catch { return text; }
 }
 
-// Returns translated text fields for a product; fast if UK, async if EN
 async function getProductText(p) {
   if (lang === 'uk') {
     return {
@@ -340,13 +350,11 @@ async function getProductText(p) {
       measurements: p.measurements || '',
     };
   }
-  // Parallel fetches — pre-translated fields win, otherwise call API
   const [desc, material, care] = await Promise.all([
     p.descEn     ? Promise.resolve(p.descEn)     : translateUkToEn(p.desc     || ''),
     p.materialEn ? Promise.resolve(p.materialEn) : translateUkToEn(p.material || ''),
     p.careEn     ? Promise.resolve(p.careEn)     : translateUkToEn(p.care     || ''),
   ]);
-  // Measurements: keep original but swap common terms (numbers/cm are universal)
   const measurements = p.measurementsEn || replaceMeasureTerms(p.measurements || '');
   return { desc, material, care, measurements };
 }
@@ -477,8 +485,6 @@ function findSuggestion(rawQuery) {
 }
 
 // ─── SIZE / MEASUREMENT CHART ─────────────────────────────────────────────────
-
-// Parse "39: 24.5–25.0см; 40: 25.5см" → [{size, value}, …]
 function parseMeasurements(str) {
   if (!str?.trim()) return null;
   const clean = str.trim().replace(/\.$/, '');
@@ -500,7 +506,6 @@ function buildSizeChart(measurementsStr, p) {
   const isShoe = p.category === 'Shoes';
   const colHeader = isShoe ? t.size_col_foot : t.size_col_measure;
 
-  // Which size to highlight (if user has already selected one)
   let highlightKey = '';
   if (selectedSize) {
     const parts = selectedSize.split('/');
@@ -525,7 +530,6 @@ function buildSizeChart(measurementsStr, p) {
   </div>`;
 }
 
-// Highlight the matching row when user picks a size (no full re-render needed)
 function updateSizeChartHighlight() {
   if (!modalProduct) return;
   const isShoe = modalProduct.category === 'Shoes';
@@ -624,7 +628,6 @@ function renderGrid() {
   if (countEl) countEl.textContent = `${filtered.length} ${T[lang].results}`;
   const grid = document.getElementById('product-grid');
 
-  // Suggestion bar
   const suggBar  = document.getElementById('search-suggestion');
   const suggText = document.getElementById('search-suggestion-text');
   const suggBtn  = document.getElementById('search-suggestion-btn');
@@ -649,12 +652,15 @@ function renderGrid() {
     return;
   }
 
+  // FIX #4: cards rendered as <a href="#id"> so right-click → "Відкрити в новій вкладці"
+  // works on the WHOLE card (image + text). Middle-click also works.
   grid.innerHTML = filtered.map(p => {
     const disc   = p.onSale && p.oldPrice > p.price ? Math.round((1 - p.price / p.oldPrice) * 100) : 0;
     const stock  = getStock(p);
     const imgSrc = getCardImgSrc(p);
     return `
-      <div class="card${stock === 0 ? ' out-of-stock' : ''}" onclick="openModal('${p.id}')">
+      <a class="card${stock === 0 ? ' out-of-stock' : ''}" href="#${p.id}"
+         onclick="event.preventDefault(); openModal('${p.id}')">
         <div class="card-img-wrap">
           <img src="${imgSrc}" alt="${p.name}" loading="lazy"
                onerror="this.closest('.card-img-wrap').classList.add('no-img')">
@@ -669,7 +675,7 @@ function renderGrid() {
             ${p.oldPrice > p.price ? `<span class="price-old">${fmt(p.oldPrice)}</span>` : ''}
           </div>
         </div>
-      </div>`;
+      </a>`;
   }).join('');
 
   requestAnimationFrame(() => initScrollAnimations());
@@ -776,7 +782,6 @@ function renderNav() {
   document.getElementById('nav-sale').classList.toggle('active', activeTab === 'sale');
   document.getElementById('cart-title').textContent = t.cart_title;
 
-  // Mobile nav labels
   const mna = document.getElementById('mob-nav-all-label');
   const mns = document.getElementById('mob-nav-sale-label');
   const mnf = document.getElementById('mob-nav-filter-label');
@@ -789,13 +794,16 @@ function renderNav() {
   document.getElementById('mob-nav-all')?.classList.toggle('active',  activeTab === 'all');
   document.getElementById('mob-nav-sale')?.classList.toggle('active', activeTab === 'sale');
 
-  // Order step labels
   document.querySelectorAll('.order-step[data-step]').forEach(el => {
     const n = el.dataset.step;
     if (n === '1') el.textContent = t.step1;
     if (n === '2') el.textContent = t.step2;
     if (n === '3') el.textContent = t.step3;
   });
+
+  // Account title
+  const accTitle = document.getElementById('account-title-el');
+  if (accTitle) accTitle.textContent = t.account_title;
 }
 
 function toggleFpSection(id) { document.getElementById(id)?.classList.toggle('collapsed'); }
@@ -916,7 +924,6 @@ async function openModal(id) {
   document.body.style.overflow = 'hidden';
   setProductHash(p.id);
 
-  // Load images and (possibly async) translated text in parallel
   const [images, text] = await Promise.all([
     loadProductImages(p),
     getProductText(p),
@@ -930,7 +937,6 @@ function renderModal(p, images, text) {
   const modal  = document.getElementById('modal');
   const gallery = modal.querySelector('.modal-gallery');
 
-  // ── Gallery ──
   if (images && images.length > 0) {
     gallery.innerHTML = `
       <div class="gallery-main">
@@ -953,7 +959,6 @@ function renderModal(p, images, text) {
     gallery.innerHTML = '<div class="gallery-main no-img-placeholder"><span>No image</span></div>';
   }
 
-  // ── Info ──
   const isShoe = p.category === 'Shoes';
   const disc   = p.onSale && p.oldPrice > p.price ? Math.round((1 - p.price / p.oldPrice) * 100) : 0;
   const inCart = selectedSize ? isInCart(p.id, selectedSize) : false;
@@ -1006,7 +1011,6 @@ function renderModal(p, images, text) {
       </button>
     </div>`;
 
-  // Share button
   const shareBtn = document.getElementById('modal-share');
   if (shareBtn) {
     shareBtn.onclick = () => {
@@ -1076,7 +1080,7 @@ function selectSize(size, el) {
   const buyBtn = document.querySelector('.btn-buy-now');
   if (buyBtn) buyBtn.disabled = false;
   updateCartBtnState();
-  updateSizeChartHighlight();   // ← highlight matching row in chart
+  updateSizeChartHighlight();
 }
 
 function buyNow() {
@@ -1107,23 +1111,19 @@ function closeModal() {
   document.getElementById('modal').classList.remove('open');
   modalProduct = null; selectedSize = null;
   setProductHash('');
-  // If opened from order form, restore it without resetting form data
   if (orderFormHidden) {
     orderFormHidden = false;
     document.getElementById('order-modal').classList.add('open');
-    // body overflow stays hidden — order form is still open
   } else {
     document.body.style.overflow = '';
   }
 }
 
 // ─── OPEN PRODUCT FROM ORDER FORM ────────────────────────────────────────────
-// Hides order form, opens modal; modal close restores order form automatically.
 function openProductFromOrder(id) {
   const orderEl = document.getElementById('order-modal');
   orderEl.classList.remove('open');
   orderFormHidden = true;
-  // body overflow stays hidden because product modal will open
   setTimeout(() => openModal(id), 300);
 }
 
@@ -1234,6 +1234,102 @@ function changeQty(key, delta) {
 }
 function removeFromCart(key) { cart = cart.filter(x => x.key !== key); saveCart(); updateCartCount(); renderCart(); }
 function clearCart() { cart = []; saveCart(); updateCartCount(); renderCart(); }
+
+// ─── ACCOUNT / ORDER HISTORY — FIX #1 ────────────────────────────────────────
+function getLocalOrders() {
+  return JSON.parse(localStorage.getItem('orderHistory') || '[]');
+}
+
+function saveOrderLocally(orderId, payload) {
+  const orders = getLocalOrders();
+  orders.unshift({
+    id:       orderId,
+    date:     new Date().toISOString(),
+    name:     payload.name,
+    phone:    payload.phone,
+    items:    payload.items,
+    total:    payload.totalAmount,
+    delivery: payload.deliveryType,
+    payment:  payload.paymentType,
+    city:     payload.city,
+    branch:   payload.novaPoshta || payload.address || '',
+    paymentStatus: payload.paymentStatus,
+  });
+  localStorage.setItem('orderHistory', JSON.stringify(orders.slice(0, 50)));
+}
+
+function openAccount() {
+  renderAccountPanel();
+  document.getElementById('account-drawer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAccount() {
+  document.getElementById('account-drawer').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function renderAccountPanel() {
+  const t      = T[lang];
+  const body   = document.getElementById('account-body');
+  const orders = getLocalOrders();
+  if (!body) return;
+
+  if (!orders.length) {
+    body.innerHTML = `
+      <div class="account-empty">
+        <svg width="52" height="52" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5">
+          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+          <rect x="9" y="3" width="6" height="4" rx="1"/>
+          <line x1="9" y1="12" x2="15" y2="12"/>
+          <line x1="9" y1="16" x2="12" y2="16"/>
+        </svg>
+        <p>${t.account_empty}</p>
+      </div>`;
+    return;
+  }
+
+  body.innerHTML = orders.map(order => {
+    const date = new Date(order.date);
+    const dateStr = date.toLocaleDateString(lang === 'uk' ? 'uk-UA' : 'en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+
+    const itemsStr = (order.items || []).map(i => {
+      const isShoe = (PRODUCTS.find(p => p.id === i.id)?.category === 'Shoes');
+      const sl = i.size?.includes('/') ? i.size.split('/')[isShoe ? 1 : 0] : i.size;
+      return `${i.brand} ${i.name} (${sl}) ×${i.qty}`;
+    }).join(', ');
+
+    // Determine badge class
+    const isCod  = order.payment === 'Накладений платіж' || order.payment === 'Cash on delivery';
+    const isPaid = order.paymentStatus === 'Оплачено';
+    const badgeClass = isPaid ? 'status-paid' : isCod ? 'status-cod' : 'status-new';
+    const badgeText  = isPaid
+      ? t.order_paid
+      : isCod ? t.order_cod : t.order_new;
+
+    const location = order.branch || order.city || '—';
+
+    return `
+      <div class="account-order">
+        <div class="account-order-header">
+          <div>
+            ${order.id ? `<span class="account-order-id">№ ${order.id}</span>` : ''}
+            <span class="account-order-date">${dateStr}</span>
+          </div>
+          <span class="account-order-total">${fmt(order.total)}</span>
+        </div>
+        <p class="account-order-items">${itemsStr}</p>
+        <div class="account-order-footer">
+          <span class="account-order-delivery">${order.delivery}${location !== '—' ? ' · ' + location : ''}</span>
+          <span class="account-order-badge ${badgeClass}">${badgeText}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
 
 // ─── ORDER FORM ───────────────────────────────────────────────────────────────
 function openOrderForm() {
@@ -1362,7 +1458,20 @@ function goToStep(n) {
     const name  = document.getElementById('f-name')?.value.trim();
     const phone = document.getElementById('f-phone')?.value.trim();
     if (!name)  { markError('f-name');  return; }
-    if (!phone || phone.replace(/\D/g, '').length < 9) { markError('f-phone'); return; }
+    // FIX #6: proper Ukrainian phone validation (+380 and 9 digits after)
+    if (!phone || !isValidPhone(phone)) {
+      const phoneEl = document.getElementById('f-phone');
+      if (phoneEl) {
+        phoneEl.placeholder = '+380 XX XXX XX XX';
+        phoneEl.style.borderColor = 'var(--sale)';
+        phoneEl.addEventListener('input', () => { phoneEl.style.borderColor = ''; }, { once: true });
+        phoneEl.focus();
+        showToast(lang === 'uk'
+          ? 'Вкажіть номер у форматі +380XXXXXXXXX'
+          : 'Enter phone as +380XXXXXXXXX');
+      }
+      return;
+    }
   }
   if (n === 3) {
     const delivery  = document.querySelector('input[name="delivery"]:checked')?.value;
@@ -1370,7 +1479,9 @@ function goToStep(n) {
     const isUP      = delivery === 'ukrposhta';
     if (isUP) {
       if (!document.getElementById('f-up-city')?.value.trim())    { markError('f-up-city');    return; }
-      if (!document.getElementById('f-up-index')?.value.trim())   { markError('f-up-index');   return; }
+      // FIX #7: postal index must be exactly 5 digits
+      const upIdx = document.getElementById('f-up-index')?.value.trim();
+      if (!upIdx || !/^\d{5}$/.test(upIdx)) { markError('f-up-index'); return; }
       if (!document.getElementById('f-up-address')?.value.trim()) { markError('f-up-address'); return; }
     } else {
       if (!document.getElementById('f-city')?.value.trim()) { markError('f-city'); return; }
@@ -1486,17 +1597,22 @@ async function submitOrder() {
     else           finalNP      = document.getElementById('f-np')?.value.trim();
   }
 
+  // FIX #2: send explicit paymentStatus so Google Sheets can show correct value.
+  // Update your Apps Script to read payload.paymentStatus into the sheet column.
+  const paymentStatus = isCod ? 'При отриманні' : 'Очікується підтвердження';
+
   const payload = {
     action: 'order',
-    name:       document.getElementById('f-name')?.value.trim()      || '',
-    phone:      document.getElementById('f-phone')?.value.trim()     || '',
-    instagram:  document.getElementById('f-instagram')?.value.trim() || '',
+    name:          document.getElementById('f-name')?.value.trim()      || '',
+    phone:         document.getElementById('f-phone')?.value.trim()     || '',
+    instagram:     document.getElementById('f-instagram')?.value.trim() || '',
     city: finalCity, novaPoshta: finalNP, address: finalAddress,
-    deliveryType: DELIVERY_LABELS_UK[delivery] || delivery,
-    paymentType:  PAYMENT_LABELS[payVal]       || payVal,
+    deliveryType:  DELIVERY_LABELS_UK[delivery] || delivery,
+    paymentType:   PAYMENT_LABELS[payVal]       || payVal,
+    paymentStatus,                      // ← new field for Google Sheets
     codFee: isCod ? 20 : 0, totalAmount,
     comment: document.getElementById('f-comment')?.value.trim() || '',
-    items: cart.map(i => ({ id: i.id, name: i.name, size: i.size, price: i.price, qty: i.qty })),
+    items: cart.map(i => ({ id: i.id, name: i.name, brand: i.brand, size: i.size, price: i.price, qty: i.qty })),
   };
 
   try {
@@ -1510,6 +1626,9 @@ async function submitOrder() {
       await new Promise(r => setTimeout(r, 600));
       orderId = 'ORD-' + Date.now().toString().slice(-4);
     }
+
+    // FIX #1: save order to localStorage for history
+    saveOrderLocally(orderId, payload);
 
     document.querySelectorAll('.order-step-content').forEach(el => el.classList.remove('active'));
     const successEl = document.getElementById('order-success');
@@ -1567,12 +1686,12 @@ async function setLang(l) {
   document.getElementById('lang-uk').classList.toggle('active', l === 'uk');
   document.getElementById('lang-en').classList.toggle('active', l === 'en');
   renderNav(); renderFilters(); renderGrid();
-  // Re-render open modal with translated text
   if (modalProduct) {
     const text = await getProductText(modalProduct);
     renderModal(modalProduct, modalPhotoCache[modalProduct.id] || null, text);
   }
   if (document.getElementById('cart-drawer').classList.contains('open')) renderCart();
+  if (document.getElementById('account-drawer')?.classList.contains('open')) renderAccountPanel();
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
@@ -1636,9 +1755,24 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cart-close').addEventListener('click', closeCart);
   document.getElementById('cart-overlay').addEventListener('click', closeCart);
 
+  // Account — FIX #1
+  document.getElementById('account-btn')?.addEventListener('click', openAccount);
+  document.getElementById('account-close')?.addEventListener('click', closeAccount);
+  document.getElementById('account-overlay')?.addEventListener('click', closeAccount);
+
+  // FIX #7: postal index — numbers only, max 5 digits (runtime guard)
+  const upIndex = document.getElementById('f-up-index');
+  if (upIndex) {
+    upIndex.addEventListener('input', () => {
+      upIndex.value = upIndex.value.replace(/[^0-9]/g, '').slice(0, 5);
+    });
+  }
+
   // Keyboard shortcuts
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeModal(); closeCart(); closeFilters(); closeOrderForm(); }
+    if (e.key === 'Escape') {
+      closeModal(); closeCart(); closeFilters(); closeOrderForm(); closeAccount();
+    }
     if (!document.getElementById('modal').classList.contains('open')) return;
     if (e.key === 'ArrowLeft')  changePhoto(-1);
     if (e.key === 'ArrowRight') changePhoto(1);
@@ -1652,7 +1786,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Browser back button — close modal if opened via hash
+  // Browser back button
   window.addEventListener('popstate', () => {
     if (!location.hash && document.getElementById('modal').classList.contains('open')) {
       document.getElementById('modal').classList.remove('open');
