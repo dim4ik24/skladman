@@ -52,7 +52,16 @@
         <button class="lang-btn" id="lang-en">ENG</button>
       </div>
 
-      <!-- Cart button -->
+      <!-- FIX #1: Account / Order history button -->
+      <button class="account-btn" id="account-btn" aria-label="Мої замовлення">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </button>
+
+      <!-- Cart button (FIX #3: hidden on mobile via CSS) -->
       <button class="cart-btn" id="cart-toggle" aria-label="Кошик">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
              stroke="currentColor" stroke-width="2">
@@ -82,7 +91,7 @@
   </div>
 </header>
 
-<!-- Search suggestion bar (JS-controlled, works on desktop and mobile) -->
+<!-- Search suggestion bar -->
 <div class="search-suggestion" id="search-suggestion" style="display:none">
   <span id="search-suggestion-text"></span>
   <button class="suggestion-pill" id="search-suggestion-btn"
@@ -108,173 +117,24 @@
 
     <div class="filter-right">
       <span class="results-count" id="results-count"></span>
-      <!-- ═══════════════════════════════════════════════════════
-     PATCH: Замінити блок .sort-group у filters-bar
-     Знайдіть у index.html:
 
-       <div class="sort-group">
-         <span class="filter-label" id="sort-label">Сортування</span>
-         <select class="filter-select" id="filter-sort"></select>
-       </div>
+      <!-- Custom sort dropdown (replaces native select) -->
+      <div class="sort-group" id="sort-group">
+        <select class="filter-select" id="filter-sort" aria-hidden="true" tabindex="-1"></select>
+        <button class="sort-pill" id="sort-pill" type="button"
+                onclick="toggleSortDropdown()" aria-haspopup="listbox"
+                aria-expanded="false" aria-label="Сортування">
+          <span class="sort-pill-label">Сортування</span>
+          <span class="sort-pill-value" id="sort-pill-value">За замовчуванням</span>
+          <svg class="sort-pill-chevron" width="14" height="14" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2.2">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        <div class="sort-dropdown" id="sort-dropdown" role="listbox"></div>
+      </div>
 
-     І замініть на це:
-═══════════════════════════════════════════════════════ -->
-<div class="sort-group" id="sort-group">
-
-  <!-- Прихований нативний select — app.js читає його як раніше -->
-  <select class="filter-select" id="filter-sort" aria-hidden="true" tabindex="-1"></select>
-
-  <!-- Кастомна кнопка-pill -->
-  <button class="sort-pill" id="sort-pill" type="button"
-          onclick="toggleSortDropdown()" aria-haspopup="listbox"
-          aria-expanded="false" aria-label="Сортування">
-    <span class="sort-pill-label">Сортування</span>
-    <span class="sort-pill-value" id="sort-pill-value">За замовчуванням</span>
-    <svg class="sort-pill-chevron" width="14" height="14" viewBox="0 0 24 24"
-         fill="none" stroke="currentColor" stroke-width="2.2">
-      <polyline points="6 9 12 15 18 9"/>
-    </svg>
-  </button>
-
-  <!-- Кастомний список -->
-  <div class="sort-dropdown" id="sort-dropdown" role="listbox"></div>
-</div>
-<script>
-(function () {
-  /* ── Дані опцій ── */
-  const SORT_OPTIONS = [
-    { value: 'default',    labelUk: 'За замовчуванням', labelEn: 'Default' },
-    { value: 'price_asc',  labelUk: 'Ціна: від низької', labelEn: 'Price: low to high' },
-    { value: 'price_desc', labelUk: 'Ціна: від високої', labelEn: 'Price: high to low' },
-    { value: 'relevance',  labelUk: 'За релевантністю',  labelEn: 'By relevance' },
-  ];
-
-  /* ── Стан ── */
-  let sortOpen = false;
-
-  /* ── Отримати поточну мову (з app.js) ── */
-  function getLang() {
-    return localStorage.getItem('lang') || 'uk';
-  }
-
-  /* ── Побудувати список опцій ── */
-  function buildSortDropdown() {
-    const drop     = document.getElementById('sort-dropdown');
-    const select   = document.getElementById('filter-sort');
-    const pillVal  = document.getElementById('sort-pill-value');
-    if (!drop || !select) return;
-
-    const curValue = select.value || 'default';
-    const l        = getLang();
-
-    drop.innerHTML = SORT_OPTIONS.map(opt => {
-      const label   = l === 'en' ? opt.labelEn : opt.labelUk;
-      const isActive = opt.value === curValue;
-      return `<div class="sort-option${isActive ? ' active' : ''}"
-                   role="option" aria-selected="${isActive}"
-                   onclick="selectSortOption('${opt.value}')">
-        ${label}
-        <span class="sort-option-check" aria-hidden="true"></span>
-      </div>`;
-    }).join('');
-
-    /* Оновити значення на пігулці */
-    const cur = SORT_OPTIONS.find(o => o.value === curValue);
-    if (cur && pillVal) pillVal.textContent = l === 'en' ? cur.labelEn : cur.labelUk;
-  }
-
-  /* ── Відкрити / закрити ── */
-  window.toggleSortDropdown = function () {
-    const group = document.getElementById('sort-group');
-    const pill  = document.getElementById('sort-pill');
-    if (!group) return;
-    sortOpen = !sortOpen;
-    group.classList.toggle('open', sortOpen);
-    if (pill) pill.setAttribute('aria-expanded', String(sortOpen));
-    if (sortOpen) buildSortDropdown();
-  };
-
-  function closeSortDropdown() {
-    sortOpen = false;
-    const group = document.getElementById('sort-group');
-    const pill  = document.getElementById('sort-pill');
-    if (group) group.classList.remove('open');
-    if (pill)  pill.setAttribute('aria-expanded', 'false');
-  }
-
-  /* ── Вибір опції ── */
-  window.selectSortOption = function (value) {
-    const select = document.getElementById('filter-sort');
-    if (!select) return;
-    select.value = value;
-    /* Тригер change — app.js підхопить і перерендерить grid */
-    select.dispatchEvent(new Event('change'));
-    /* Оновити pill-текст одразу */
-    buildSortDropdown();
-    closeSortDropdown();
-  };
-
-  /* ── Закрити при кліку поза дропдауном ── */
-  document.addEventListener('click', function (e) {
-    if (sortOpen && !e.target.closest('#sort-group')) {
-      closeSortDropdown();
-    }
-  });
-
-  /* ── Закрити при Escape ── */
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && sortOpen) closeSortDropdown();
-  });
-
-  /* ── Після завантаження: побудувати нативний select + синхронізувати pill ── */
-  document.addEventListener('DOMContentLoaded', function () {
-    /* app.js наповнює #filter-sort через renderFilters(), яка вже є.
-       Щоб і pill показував правильний текст після renderFilters(),
-       патчимо MutationObserver на select. */
-    const select = document.getElementById('filter-sort');
-    if (!select) return;
-
-    /* Оновлення pill кожного разу, коли app.js змінює select.value */
-    const origDescriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
-    Object.defineProperty(select, 'value', {
-      get() { return origDescriptor.get.call(this); },
-      set(v) {
-        origDescriptor.set.call(this, v);
-        buildSortDropdown();
-      }
-    });
-
-    /* Також спостерігаємо за додаванням <option> (renderFilters) */
-    new MutationObserver(() => buildSortDropdown())
-      .observe(select, { childList: true });
-
-    buildSortDropdown();
-  });
-
-  /* Якщо мова змінюється — оновити текст pill (setLang у app.js рендерить grid,
-     але не чіпає наш custom dropdown) */
-  const _origSetLang = window.setLang;
-  if (typeof _origSetLang === 'function') {
-    window.setLang = async function (l) {
-      await _origSetLang(l);
-      buildSortDropdown();
-    };
-  } else {
-    /* setLang ще не визначена — перезапишемо після DOMContentLoaded */
-    window.addEventListener('load', function () {
-      if (typeof window.setLang === 'function') {
-        const orig = window.setLang;
-        window.setLang = async function (l) {
-          await orig(l);
-          buildSortDropdown();
-        };
-      }
-    });
-  }
-})();
-</script>
     </div>
-
   </div>
 </div>
 
@@ -344,6 +204,19 @@
   </div>
 </div>
 
+<!-- ═══════════════════════════ ACCOUNT DRAWER ═══════════════════════════ -->
+<!-- FIX #1: Order history drawer -->
+<div id="account-drawer">
+  <div id="account-overlay"></div>
+  <div class="account-panel">
+    <div class="account-header">
+      <h2 class="account-title" id="account-title-el">Мої замовлення</h2>
+      <button class="account-close" id="account-close">✕</button>
+    </div>
+    <div class="account-body" id="account-body"></div>
+  </div>
+</div>
+
 <!-- ═══════════════════════ ORDER / CHECKOUT MODAL ═══════════════════════ -->
 <div id="order-modal">
   <div id="order-overlay" onclick="closeOrderForm()"></div>
@@ -363,7 +236,7 @@
 
     <div class="order-body">
 
-      <!-- Mini cart summary (JS-rendered, items are clickable via renderOrderSummary) -->
+      <!-- Mini cart summary -->
       <div class="order-summary" id="order-summary"></div>
 
       <!-- ── STEP 1: Contacts ────────────────────────────────────────── -->
@@ -379,8 +252,9 @@
 
           <div class="form-row">
             <label class="form-label" id="lbl-phone">Номер телефону *</label>
+            <!-- FIX #6: phone input with proper format hint -->
             <input class="form-input" type="tel" id="f-phone"
-                   placeholder="+380 xx xxx xx xx" autocomplete="tel">
+                   placeholder="+380 XX XXX XX XX" autocomplete="tel">
           </div>
 
           <div class="form-row">
@@ -467,7 +341,7 @@
               </div>
             </div>
 
-            <!-- NP branch / poshtamat (hidden when courier selected) -->
+            <!-- NP branch / poshtamat -->
             <div class="form-row" id="np-row">
               <label class="form-label" id="lbl-np">Відділення / Поштомат *</label>
               <div class="np-autocomplete-wrap">
@@ -481,7 +355,7 @@
               </div>
             </div>
 
-            <!-- Courier address (hidden by default) -->
+            <!-- Courier address -->
             <div class="form-row" id="address-row" style="display:none">
               <label class="form-label" id="lbl-address">Адреса доставки *</label>
               <input class="form-input" type="text" id="f-address"
@@ -491,7 +365,7 @@
 
           </div>
 
-          <!-- Ukrposhta group (hidden by default) -->
+          <!-- Ukrposhta group -->
           <div id="up-group" class="animated-group"
                style="display:none; flex-direction:column; gap:14px;">
             <div class="form-row">
@@ -501,8 +375,11 @@
             </div>
             <div class="form-row">
               <label class="form-label" id="lbl-up-index">Поштовий індекс *</label>
+              <!-- FIX #7: only digits, max 5 chars -->
               <input class="form-input" type="text" id="f-up-index"
-                     placeholder="01001" inputmode="numeric">
+                     placeholder="01001" inputmode="numeric"
+                     maxlength="5"
+                     oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,5)">
             </div>
             <div class="form-row">
               <label class="form-label" id="lbl-up-address">
@@ -682,7 +559,7 @@
           style="display:none; background:var(--accent); color:#fff;"></span>
   </button>
 
-  <!-- Cart -->
+  <!-- Cart (FIX #3: cart in bottom nav stays, header cart hidden on mobile) -->
   <button class="mbn-btn" id="mob-nav-cart" onclick="openCart()">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
          stroke="currentColor" stroke-width="2">
@@ -702,8 +579,7 @@
 <script src="js/app.js"></script>
 
 <!-- ═══════════════════════════════════════════════════════
-     Small inline patch: wire up search-clear buttons and
-     sync mobile search bar open/close — no changes to app.js
+     Search clear buttons + mobile search sync
 ═══════════════════════════════════════════════════════ -->
 <script>
 (function () {
@@ -736,11 +612,112 @@
       mobInput.focus();
     });
   }
-
-  // ── Mobile nav: wire All / Sale buttons using app.js listeners ───────
-  // app.js attaches listeners by ID on DOMContentLoaded, so nothing extra
-  // needed here — IDs mob-nav-all and mob-nav-sale match.
 })();
 </script>
+
+<!-- ═══════════════════════════════════════════════════════
+     Custom sort dropdown
+═══════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  const SORT_OPTIONS = [
+    { value: 'default',    labelUk: 'За замовчуванням', labelEn: 'Default' },
+    { value: 'price_asc',  labelUk: 'Ціна: від низької', labelEn: 'Price: low to high' },
+    { value: 'price_desc', labelUk: 'Ціна: від високої', labelEn: 'Price: high to low' },
+    { value: 'relevance',  labelUk: 'За релевантністю',  labelEn: 'By relevance' },
+  ];
+
+  let sortOpen = false;
+
+  function getLang() { return localStorage.getItem('lang') || 'uk'; }
+
+  function buildSortDropdown() {
+    const drop    = document.getElementById('sort-dropdown');
+    const select  = document.getElementById('filter-sort');
+    const pillVal = document.getElementById('sort-pill-value');
+    if (!drop || !select) return;
+
+    const curValue = select.value || 'default';
+    const l        = getLang();
+
+    drop.innerHTML = SORT_OPTIONS.map(opt => {
+      const label    = l === 'en' ? opt.labelEn : opt.labelUk;
+      const isActive = opt.value === curValue;
+      return `<div class="sort-option${isActive ? ' active' : ''}"
+                   role="option" aria-selected="${isActive}"
+                   onclick="selectSortOption('${opt.value}')">
+        ${label}
+        <span class="sort-option-check" aria-hidden="true"></span>
+      </div>`;
+    }).join('');
+
+    const cur = SORT_OPTIONS.find(o => o.value === curValue);
+    if (cur && pillVal) pillVal.textContent = l === 'en' ? cur.labelEn : cur.labelUk;
+  }
+
+  window.toggleSortDropdown = function () {
+    const group = document.getElementById('sort-group');
+    const pill  = document.getElementById('sort-pill');
+    if (!group) return;
+    sortOpen = !sortOpen;
+    group.classList.toggle('open', sortOpen);
+    if (pill) pill.setAttribute('aria-expanded', String(sortOpen));
+    if (sortOpen) buildSortDropdown();
+  };
+
+  function closeSortDropdown() {
+    sortOpen = false;
+    const group = document.getElementById('sort-group');
+    const pill  = document.getElementById('sort-pill');
+    if (group) group.classList.remove('open');
+    if (pill)  pill.setAttribute('aria-expanded', 'false');
+  }
+
+  window.selectSortOption = function (value) {
+    const select = document.getElementById('filter-sort');
+    if (!select) return;
+    select.value = value;
+    select.dispatchEvent(new Event('change'));
+    buildSortDropdown();
+    closeSortDropdown();
+  };
+
+  document.addEventListener('click', function (e) {
+    if (sortOpen && !e.target.closest('#sort-group')) closeSortDropdown();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && sortOpen) closeSortDropdown();
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const select = document.getElementById('filter-sort');
+    if (!select) return;
+
+    new MutationObserver(() => buildSortDropdown()).observe(select, { childList: true });
+
+    // Re-build when app.js changes select.value programmatically
+    const origDescriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+    Object.defineProperty(select, 'value', {
+      get() { return origDescriptor.get.call(this); },
+      set(v) { origDescriptor.set.call(this, v); buildSortDropdown(); }
+    });
+
+    buildSortDropdown();
+  });
+
+  // Re-build on language change
+  window.addEventListener('load', function () {
+    if (typeof window.setLang === 'function') {
+      const orig = window.setLang;
+      window.setLang = async function (l) {
+        await orig(l);
+        buildSortDropdown();
+      };
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
