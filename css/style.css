@@ -845,7 +845,11 @@ header {
 /* ═══════════════════════════════════════════════════════
    PRODUCT CARD
 ═══════════════════════════════════════════════════════ */
+/* FIX #4: card rendered as <a> tag – reset anchor defaults */
 .card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
   background: var(--surface);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -1195,18 +1199,27 @@ header {
   text-align: center;
   color: var(--text);
 }
-.size-tag:not(.size-unavailable):hover {
+.size-tag:not(.size-unavailable):not(.selected):hover {
   border-color: var(--accent);
   background: var(--bg);
   transform: translateY(-2px);
   color: var(--text);
 }
+/* FIX #5: !important on background prevents mobile hover from making
+   white text invisible on light background */
 .size-tag.selected {
-  border-color: var(--accent);
-  background: var(--accent);
+  border-color: var(--accent) !important;
+  background: var(--accent) !important;
   color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
   transform: translateY(-2px);
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+.size-tag.selected:hover,
+.size-tag.selected:active {
+  background: var(--accent2) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
 }
 .size-unavailable {
   color: var(--border) !important;
@@ -2300,6 +2313,183 @@ footer {
 }
 
 /* ═══════════════════════════════════════════════════════
+   ACCOUNT BUTTON
+═══════════════════════════════════════════════════════ */
+.account-btn {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  transition: all 0.2s var(--ease-bounce);
+  flex-shrink: 0;
+}
+.account-btn:hover { background: var(--bg2); transform: scale(1.1); }
+
+/* ═══════════════════════════════════════════════════════
+   ACCOUNT / ORDER HISTORY DRAWER
+═══════════════════════════════════════════════════════ */
+#account-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 610;
+  pointer-events: none;
+}
+#account-drawer.open { pointer-events: all; }
+
+#account-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10,10,8,0.4);
+  opacity: 0;
+  transition: opacity 0.3s var(--ease);
+  backdrop-filter: blur(3px);
+}
+#account-drawer.open #account-overlay { opacity: 1; }
+
+.account-panel {
+  position: absolute;
+  top: 0; right: 0;
+  width: 440px;
+  max-width: 100vw;
+  height: 100%;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -12px 0 60px rgba(0,0,0,0.1);
+  transform: translateX(100%);
+  transition: transform 0.4s cubic-bezier(0.34, 1.1, 0.64, 1);
+}
+#account-drawer.open .account-panel { transform: translateX(0); }
+
+.account-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px;
+  border-bottom: 1px solid var(--border-sm);
+  flex-shrink: 0;
+}
+.account-title { font-family: var(--font-display); font-size: 20px; font-weight: 500; }
+.account-close {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  color: var(--text-mid);
+  transition: all 0.2s var(--ease-bounce);
+}
+.account-close:hover { background: var(--bg2); color: var(--text); transform: scale(1.1) rotate(90deg); }
+
+.account-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.account-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 14px;
+  color: var(--text-muted);
+  animation: fadeStepIn 0.4s ease;
+}
+.account-empty svg { opacity: 0.2; }
+.account-empty p { font-size: 15px; }
+
+.account-order {
+  background: var(--bg);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  border: 1px solid var(--border-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: fadeStepIn 0.35s var(--ease-out);
+  transition: box-shadow 0.2s, transform 0.2s var(--ease);
+}
+.account-order:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.account-order-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.account-order-id {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  display: block;
+}
+.account-order-date {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: block;
+  margin-top: 3px;
+}
+.account-order-total {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.account-order-items {
+  font-size: 12px;
+  color: var(--text-mid);
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.account-order-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-sm);
+}
+.account-order-delivery {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-order-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  background: var(--bg2);
+  color: var(--text-mid);
+}
+.account-order-badge.status-new      { background: #EEF2FF; color: #4338CA; }
+.account-order-badge.status-paid     { background: var(--success-bg); color: var(--success); }
+.account-order-badge.status-cod      { background: var(--bg3); color: var(--text-mid); }
+
+/* ═══════════════════════════════════════════════════════
    SCROLLBAR
 ═══════════════════════════════════════════════════════ */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -2321,6 +2511,12 @@ footer {
 ═══════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
   :root { --header-h: 54px; }
+
+  /* FIX #3: cart button already in bottom nav – hide in header on mobile */
+  .cart-btn { display: none; }
+
+  /* Account panel full width on mobile */
+  .account-panel { width: 100vw; }
 
   /* ── Header ── */
   .header-inner { padding: 0 16px; gap: 10px; }
