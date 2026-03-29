@@ -87,20 +87,34 @@ header {
 }
 .logo-wrap:hover { transform: scale(1.05); }
 
+.logo-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: transform 0.2s var(--ease);
+}
+.logo-wrap:hover { transform: scale(1.05); }
+
 .logo-img {
-  height: 36px;
+  height: 72px;
   width: auto;
   display: block;
   object-fit: contain;
-  transition: transform 0.2s var(--ease), opacity 0.2s;
 }
-.logo-wrap:hover .logo-img {
-  transform: scale(1.05);
-  opacity: 0.85;
+
+.logo-text {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text);
 }
 
 @media (max-width: 768px) {
-  .logo-img { height: 28px; }
+  .logo-img  { height: 56px; }
+  .logo-text { font-size: 18px; letter-spacing: 0.08em; }
 }
 
 .header-nav { display: flex; gap: 4px; }
@@ -2704,6 +2718,7 @@ footer {
 
   /* ── Header ── */
   .header-inner { padding: 0 16px; gap: 10px; }
+  .logo-img  { height: 56px; }
   .logo-text { font-size: 18px; letter-spacing: 0.08em; }
 
   /* Hide desktop search and nav in header */
