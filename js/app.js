@@ -977,6 +977,8 @@ function renderModal(p, images, text) {
 
   const measurementsHtml = measurements ? buildSizeChart(measurements, p) : '';
 
+  const sgBtnText = lang === 'uk' ? 'Гід по розмірах' : 'Size guide';
+
   modal.querySelector('.modal-info').innerHTML = `
     <div class="modal-brand">${p.brand}</div>
     <h2 class="modal-title">${p.name}</h2>
@@ -987,7 +989,18 @@ function renderModal(p, images, text) {
     </div>
     ${desc ? `<p class="modal-desc">${desc}</p>` : ''}
     <div class="modal-sizes">
-      <p class="modal-label">${t.size_label}</p>
+      <div class="modal-size-header">
+        <p class="modal-label">${t.size_label}</p>
+        <button type="button" class="btn-size-guide" id="btn-size-guide-modal">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          ${sgBtnText}
+        </button>
+      </div>
       <div class="sizes-row">${sizesHtml}</div>
     </div>
     <div class="modal-details">
@@ -1010,6 +1023,10 @@ function renderModal(p, images, text) {
         ${lang === 'uk' ? 'Купити зараз' : 'Buy now'}
       </button>
     </div>`;
+
+  // Wire size guide button via addEventListener (avoids inline onclick issues)
+  const sgBtn = document.getElementById('btn-size-guide-modal');
+  if (sgBtn) sgBtn.addEventListener('click', openSizeGuide);
 
   const shareBtn = document.getElementById('modal-share');
   if (shareBtn) {
@@ -1119,7 +1136,100 @@ function closeModal() {
   }
 }
 
-// ─── OPEN PRODUCT FROM ORDER FORM ────────────────────────────────────────────
+// ─── SIZE GUIDE ───────────────────────────────────────────────────────────────
+// Images must be placed in:  img/size-guide/Clothing.jpg
+//                             img/size-guide/Pants.jpg
+//                             img/size-guide/Footwear.jpg
+
+const SIZE_GUIDE_CONFIG = {
+  // All clothing except Pants and Shoes
+  clothing: {
+    img: 'img/size-guide/Clothing.jpg',
+    legend: {
+      uk: [
+        { key: 'A', title: 'Довжина виробу',    hint: 'Від плеча до низу виробу' },
+        { key: 'B', title: 'Ширина плечей',     hint: 'Від краю до краю плечового шва' },
+        { key: 'C', title: 'Обхват грудей',     hint: 'Найширше місце грудної клітки' },
+      ],
+      en: [
+        { key: 'A', title: 'Length',            hint: 'From shoulder to hem' },
+        { key: 'B', title: 'Shoulder width',    hint: 'From seam to seam across shoulders' },
+        { key: 'C', title: 'Chest',             hint: 'Widest point of the chest' },
+      ],
+    },
+  },
+  pants: {
+    img: 'img/size-guide/Pants.jpg',
+    legend: {
+      uk: [
+        { key: 'A', title: 'Обхват талії',      hint: 'Найвужче місце талії' },
+        { key: 'B', title: 'Довжина штанини',   hint: 'Від кроку до низу брючини' },
+      ],
+      en: [
+        { key: 'A', title: 'Waist',             hint: 'Narrowest point of the waist' },
+        { key: 'B', title: 'Inseam length',     hint: 'From crotch to hem' },
+      ],
+    },
+  },
+  shoes: {
+    img: 'img/size-guide/Footwear.jpg',
+    legend: {
+      uk: [
+        { key: 'B', title: 'Довжина стопи',     hint: 'Від п\'яти до кінчика найдовшого пальця' },
+      ],
+      en: [
+        { key: 'B', title: 'Foot length',       hint: 'From heel to tip of the longest toe' },
+      ],
+    },
+  },
+};
+
+function getSizeGuideKey(category) {
+  if (category === 'Shoes')  return 'shoes';
+  if (category === 'Pants')  return 'pants';
+  return 'clothing'; // T-shirt, Sweatshirt, Jacket, Longsleeve, Shirt
+}
+
+function openSizeGuide() {
+  if (!modalProduct) return;
+
+  const key    = getSizeGuideKey(modalProduct.category);
+  const config = SIZE_GUIDE_CONFIG[key];
+  if (!config) return;
+
+  const l = lang === 'en' ? 'en' : 'uk';
+  const legendRows = config.legend[l] || config.legend['uk'];
+
+  const legendHtml = legendRows.map(row => `
+    <div class="sg-legend-row">
+      <span class="sg-legend-key">${row.key}</span>
+      <span class="sg-legend-desc">
+        <strong>${row.title}</strong>
+        <span>${row.hint}</span>
+      </span>
+    </div>`).join('');
+
+  const titleText = lang === 'uk' ? 'Гід по розмірах' : 'Size Guide';
+
+  const el = document.getElementById('size-guide');
+  const sgTitle  = document.getElementById('sg-title');
+  const sgLegend = document.getElementById('sg-legend');
+  const sgImg    = document.getElementById('sg-img');
+
+  if (!el) { console.warn('size-guide element not found in DOM'); return; }
+
+  if (sgTitle)  sgTitle.textContent = titleText;
+  if (sgLegend) sgLegend.innerHTML  = legendHtml;
+  if (sgImg)  { sgImg.src = config.img; sgImg.alt = titleText; }
+
+  el.classList.add('open');
+}
+
+function closeSizeGuide() {
+  document.getElementById('size-guide').classList.remove('open');
+}
+
+
 function openProductFromOrder(id) {
   const orderEl = document.getElementById('order-modal');
   orderEl.classList.remove('open');
@@ -1760,6 +1870,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('account-close')?.addEventListener('click', closeAccount);
   document.getElementById('account-overlay')?.addEventListener('click', closeAccount);
 
+  // Size guide
+  document.getElementById('size-guide-backdrop')?.addEventListener('click', closeSizeGuide);
+  document.getElementById('sg-close-btn')?.addEventListener('click', closeSizeGuide);
+
   // FIX #7: postal index — numbers only, max 5 digits (runtime guard)
   const upIndex = document.getElementById('f-up-index');
   if (upIndex) {
@@ -1771,6 +1885,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Keyboard shortcuts
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
+      closeSizeGuide();
       closeModal(); closeCart(); closeFilters(); closeOrderForm(); closeAccount();
     }
     if (!document.getElementById('modal').classList.contains('open')) return;
